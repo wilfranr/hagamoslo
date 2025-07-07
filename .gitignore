@@ -1,0 +1,8 @@
+# Ignore Expo/React Native build artifacts and dependencies
+node_modules/
+.expo/
+web-build/
+dist/
+
+# Ignore binary assets
+TaskManagerApp/assets/

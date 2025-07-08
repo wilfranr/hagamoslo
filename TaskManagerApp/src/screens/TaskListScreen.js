@@ -1,38 +1,78 @@
 // Screen that displays the list of tasks
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Text } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Text,
+  useColorScheme,
+} from 'react-native';
+import { Snackbar } from 'react-native-paper';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 
 import TaskItem from '../components/TaskItem';
-import { getTasks } from '../../utils/storage';
+import {
+  getTasks,
+  saveTasks,
+  deleteTask as removeTask,
+} from '../../utils/storage';
+import { scheduleNotification } from '../../utils/notifications';
+import { theme } from '../Theme';
 
 export default function TaskListScreen() {
   const [tasks, setTasks] = useState([]);
+  const [lastDeletedTask, setLastDeletedTask] = useState(null);
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const scheme = useColorScheme();
   const fabScale = useSharedValue(1);
   const fabAnimated = useAnimatedStyle(() => ({
     transform: [{ scale: fabScale.value }],
   }));
   const navigation = useNavigation();
 
-  // Load tasks from storage when the screen mounts
-  useEffect(() => {
-    const load = async () => {
+  // Helper to load tasks from storage
+  const loadTasks = async () => {
+    try {
       const stored = await getTasks();
       setTasks(stored);
-    };
-    load();
-  }, []);
-
-  const toggleTask = (id) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
-    );
+    } catch (e) {
+      console.error('Failed to load tasks', e);
+    }
   };
 
-  const deleteTask = (id) => {
+  // Load tasks when the screen mounts
+  useEffect(() => {
+    loadTasks();
+  }, []);
+
+  // Toggle task completion and persist the change
+  const toggleTask = async (id) => {
+    const updated = tasks.map((t) =>
+      t.id === id ? { ...t, completed: !t.completed } : t
+    );
+    setTasks(updated);
+    try {
+      await saveTasks(updated);
+    } catch (e) {
+      console.error('Failed to update task', e);
+    }
+  };
+
+  // Delete a task, store it for undo and show snackbar
+  const deleteTask = async (id) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
     setTasks((prev) => prev.filter((t) => t.id !== id));
+    setLastDeletedTask(task);
+    try {
+      await removeTask(id);
+      setSnackbarVisible(true);
+    } catch (e) {
+      console.error('Failed to delete task', e);
+    }
   };
 
   const handleFabPress = () => {
@@ -41,6 +81,26 @@ export default function TaskListScreen() {
     });
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     navigation.navigate('TaskFormScreen');
+  };
+
+  // Restore a previously deleted task
+  const undoDelete = async () => {
+    if (!lastDeletedTask) return;
+    try {
+      const current = await getTasks();
+      const taskToRestore = { ...lastDeletedTask };
+      if (taskToRestore.reminderDateTime) {
+        const id = await scheduleNotification(taskToRestore);
+        taskToRestore.notificationId = id;
+      }
+      await saveTasks([...current, taskToRestore]);
+      setSnackbarVisible(false);
+      setLastDeletedTask(null);
+      await loadTasks();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (e) {
+      console.error('Failed to restore task', e);
+    }
   };
 
   return (
@@ -64,6 +124,22 @@ export default function TaskListScreen() {
           <Text style={styles.fabText}>+</Text>
         </Animated.View>
       </TouchableOpacity>
+
+      {/* Snackbar to undo deletions */}
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={4000}
+        action={{ label: 'Undo', onPress: undoDelete }}
+        style={{
+          backgroundColor: theme.colors.background[
+            scheme === 'dark' ? 'dark' : 'light'
+          ],
+        }}
+        theme={{ colors: { onSurface: theme.colors.textPrimary } }}
+      >
+        Task deleted. Undo?
+      </Snackbar>
     </View>
   );
 }

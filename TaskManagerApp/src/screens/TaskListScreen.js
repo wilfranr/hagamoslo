@@ -1,6 +1,8 @@
 // Screen that displays the list of tasks
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Text } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 
 import TaskItem from '../components/TaskItem';
@@ -8,6 +10,10 @@ import { getTasks } from '../../utils/storage';
 
 export default function TaskListScreen() {
   const [tasks, setTasks] = useState([]);
+  const fabScale = useSharedValue(1);
+  const fabAnimated = useAnimatedStyle(() => ({
+    transform: [{ scale: fabScale.value }],
+  }));
   const navigation = useNavigation();
 
   // Load tasks from storage when the screen mounts
@@ -19,6 +25,24 @@ export default function TaskListScreen() {
     load();
   }, []);
 
+  const toggleTask = (id) => {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
+    );
+  };
+
+  const deleteTask = (id) => {
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const handleFabPress = () => {
+    fabScale.value = withSpring(0.9, undefined, () => {
+      fabScale.value = withSpring(1);
+    });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    navigation.navigate('TaskFormScreen');
+  };
+
   return (
     <View style={styles.container}>
       {/* Render the list of tasks */}
@@ -26,17 +50,19 @@ export default function TaskListScreen() {
         data={tasks}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <TaskItem task={item} onToggle={() => {}} />
+          <TaskItem task={item} onToggle={toggleTask} onDelete={deleteTask} />
         )}
       />
 
       {/* Floating action button to create a new task */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => navigation.navigate('TaskFormScreen')}
+        onPress={handleFabPress}
         accessibilityLabel="Add task"
       >
-        <Text style={styles.fabText}>+</Text>
+        <Animated.View style={fabAnimated}>
+          <Text style={styles.fabText}>+</Text>
+        </Animated.View>
       </TouchableOpacity>
     </View>
   );

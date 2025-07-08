@@ -8,8 +8,15 @@ import {
   Text,
   useColorScheme,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Snackbar } from 'react-native-paper';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 
@@ -28,8 +35,13 @@ export default function TaskListScreen() {
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const scheme = useColorScheme();
   const fabScale = useSharedValue(1);
+  const fabRotation = useSharedValue(0);
+  // Animated style for the floating action button
   const fabAnimated = useAnimatedStyle(() => ({
-    transform: [{ scale: fabScale.value }],
+    transform: [
+      { scale: fabScale.value },
+      { rotate: `${fabRotation.value}deg` },
+    ],
   }));
   const navigation = useNavigation();
 
@@ -79,6 +91,10 @@ export default function TaskListScreen() {
     fabScale.value = withSpring(0.9, undefined, () => {
       fabScale.value = withSpring(1);
     });
+    fabRotation.value = withSequence(
+      withTiming(45, { duration: 150 }),
+      withTiming(0, { duration: 150 })
+    );
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     navigation.navigate('TaskFormScreen');
   };
@@ -121,7 +137,8 @@ export default function TaskListScreen() {
         accessibilityLabel="Add task"
       >
         <Animated.View style={fabAnimated}>
-          <Text style={styles.fabText}>+</Text>
+          {/* Plus icon from Ionicons */}
+          <Ionicons name="add" size={32} color="#fff" />
         </Animated.View>
       </TouchableOpacity>
 
@@ -161,10 +178,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 3,
-  },
-  fabText: {
-    color: '#fff',
-    fontSize: 32,
-    lineHeight: 34,
   },
 });

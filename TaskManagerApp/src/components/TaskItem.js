@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, useColorScheme } from 'react-native';
 import CheckBox from '@react-native-community/checkbox';
+import { Ionicons } from '@expo/vector-icons';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, runOnJS } from 'react-native-reanimated';
 import { Swipeable } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
@@ -58,7 +59,8 @@ export default function TaskItem({ task, onToggle, onDelete }) {
 
   const renderRightActions = () => (
     <View style={styles.deleteContainer}>
-      <Text style={styles.deleteText}>Eliminar</Text>
+      {/* Trash icon shown while swiping */}
+      <Ionicons name="trash-outline" size={24} color="#fff" />
     </View>
   );
 
@@ -122,9 +124,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 12,
     marginVertical: 8,
-  },
-  deleteText: {
-    color: '#fff',
-    fontWeight: 'bold',
   },
 });

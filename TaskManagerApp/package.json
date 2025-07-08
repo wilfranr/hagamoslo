@@ -11,11 +11,15 @@
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.1.2",
+    "@react-native-community/checkbox": "^0.5.20",
     "expo": "~53.0.17",
+    "expo-haptics": "^14.1.4",
     "expo-notifications": "^0.31.4",
     "expo-status-bar": "~2.2.3",
     "react": "19.0.0",
-    "react-native": "0.79.5"
+    "react-native": "0.79.5",
+    "react-native-gesture-handler": "^2.27.1",
+    "react-native-reanimated": "^3.18.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

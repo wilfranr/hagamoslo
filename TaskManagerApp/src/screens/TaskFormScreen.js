@@ -14,6 +14,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import CheckBox from '@react-native-community/checkbox';
 
 import { getTasks, saveTasks } from '../../utils/storage';
+import { scheduleNotification } from '../../utils/notifications';
 
 export default function TaskFormScreen() {
   // Main task fields
@@ -81,6 +82,12 @@ export default function TaskFormScreen() {
         : null,
       completed: false,
     };
+
+    if (task.reminderDateTime) {
+      // Schedule notification and store its identifier
+      const notifId = await scheduleNotification(task);
+      task.notificationId = notifId;
+    }
 
     await saveTasks([...existing, task]);
     navigation.navigate('TaskListScreen');

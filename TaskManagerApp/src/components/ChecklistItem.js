@@ -1,17 +1,55 @@
 // Reusable component representing a single checklist item
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
+  useColorScheme,
+} from 'react-native';
 import CheckBox from '@react-native-community/checkbox';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import { theme, getNeumorphicStyle } from '../Theme';
 
 export default function ChecklistItem({ item, onToggle, onEdit, onDelete }) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(item.title);
+
+  const scheme = useColorScheme();
+  const backgroundColor = theme.colors.background[
+    scheme === 'dark' ? 'dark' : 'light'
+  ];
+
+  // Animated values for mount and toggle effects
+  const opacity = useSharedValue(0);
+  const scale = useSharedValue(1);
+  const translateY = useSharedValue(10);
+
+  useEffect(() => {
+    opacity.value = withTiming(1, { duration: 300 });
+    translateY.value = withTiming(0, { duration: 300 });
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [
+      { translateY: translateY.value },
+      { scale: scale.value },
+    ],
+  }));
 
   // Toggle completed state
   const handleToggle = () => {
     if (onToggle) {
       onToggle(item.id);
     }
+    const completed = !item.completed;
+    scale.value = withTiming(completed ? 0.9 : 1, { duration: 150 }, () => {
+      scale.value = withTiming(1, { duration: 150 });
+    });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   // Save edited title and exit edit mode
@@ -23,7 +61,14 @@ export default function ChecklistItem({ item, onToggle, onEdit, onDelete }) {
   };
 
   return (
-    <View style={styles.container}>
+    <Animated.View
+      style={[
+        getNeumorphicStyle(theme.colors.card),
+        styles.container,
+        { backgroundColor },
+        animatedStyle,
+      ]}
+    >
       {/* Checkbox to mark the subtask as done */}
       <CheckBox
         value={item.completed}
@@ -46,7 +91,10 @@ export default function ChecklistItem({ item, onToggle, onEdit, onDelete }) {
       )}
 
       {/* Button to edit/save title */}
-      <TouchableOpacity onPress={() => (editing ? saveEdit() : setEditing(true))} accessibilityLabel="Edit subtask">
+      <TouchableOpacity
+        onPress={() => (editing ? saveEdit() : setEditing(true))}
+        accessibilityLabel="Edit subtask"
+      >
         <Text style={styles.action}>{editing ? 'Save' : 'Edit'}</Text>
       </TouchableOpacity>
 
@@ -56,7 +104,7 @@ export default function ChecklistItem({ item, onToggle, onEdit, onDelete }) {
           <Text style={styles.action}>Delete</Text>
         </TouchableOpacity>
       )}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -64,26 +112,29 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 4,
+    marginVertical: 6,
+    padding: 12,
+    borderRadius: 12,
   },
   text: {
     flex: 1,
     marginLeft: 8,
+    color: theme.colors.textSecondary,
   },
   completed: {
     textDecorationLine: 'line-through',
-    color: '#777',
+    color: theme.colors.textSecondary,
   },
   input: {
     flex: 1,
     marginLeft: 8,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: theme.colors.accent,
     borderRadius: 4,
     padding: 4,
   },
   action: {
     marginLeft: 10,
-    color: '#6200ee',
+    color: theme.colors.accent,
   },
 });

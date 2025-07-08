@@ -1,31 +1,48 @@
 // Component that renders a single task item
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, useColorScheme } from 'react-native';
 import CheckBox from '@react-native-community/checkbox';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming, withSpring, runOnJS } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming, runOnJS } from 'react-native-reanimated';
 import { Swipeable } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 import { theme, getNeumorphicStyle } from '../Theme';
 
 // Renders a task using a soft neumorphic card design
 export default function TaskItem({ task, onToggle, onDelete }) {
-  // Shared animated values for simple microinteractions
-  const opacity = useSharedValue(1);
+  const scheme = useColorScheme();
+  const backgroundColor = theme.colors.background[
+    scheme === 'dark' ? 'dark' : 'light'
+  ];
+
+  // Shared animated values for microinteractions and mount animation
+  const opacity = useSharedValue(0);
   const scale = useSharedValue(1);
   const translateX = useSharedValue(0);
+  const translateY = useSharedValue(10);
+
+  // Fade in and slide up when mounted
+  useEffect(() => {
+    opacity.value = withTiming(1, { duration: 300 });
+    translateY.value = withTiming(0, { duration: 300 });
+  }, []);
 
   // Animated styles driven by the shared values
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
-    transform: [{ translateX: translateX.value }, { scale: scale.value }],
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+      { scale: scale.value },
+    ],
   }));
 
   // Triggered when the user taps the task to toggle completion
   const handleToggle = () => {
     onToggle?.(task.id);
-    // Animate subtle feedback
-    opacity.value = withTiming(task.completed ? 1 : 0.5, { duration: 200 });
-    scale.value = withTiming(task.completed ? 1 : 0.95, { duration: 200 });
+    // Animate subtle feedback using the new completed state
+    const completed = !task.completed;
+    opacity.value = withTiming(completed ? 0.5 : 1, { duration: 200 });
+    scale.value = withTiming(completed ? 0.95 : 1, { duration: 200 });
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
@@ -48,7 +65,14 @@ export default function TaskItem({ task, onToggle, onDelete }) {
   return (
     <Swipeable renderRightActions={renderRightActions} onSwipeableOpen={handleDelete}>
       <TouchableOpacity onPress={handleToggle} activeOpacity={0.7}>
-        <Animated.View style={[getNeumorphicStyle(theme.colors.card), styles.item, animatedStyle]}>
+        <Animated.View
+          style={[
+            getNeumorphicStyle(theme.colors.card),
+            styles.item,
+            { backgroundColor },
+            animatedStyle,
+          ]}
+        >
           {/* Checkbox to mark the task as complete */}
           <CheckBox
             value={task.completed}
@@ -69,8 +93,9 @@ const styles = StyleSheet.create({
   item: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    marginVertical: 6,
+    padding: 16,
+    marginVertical: 8,
+    marginHorizontal: 4,
     borderRadius: 12,
   },
 
@@ -93,10 +118,10 @@ const styles = StyleSheet.create({
   deleteContainer: {
     justifyContent: 'center',
     alignItems: 'flex-end',
-    backgroundColor: '#ff5252',
+    backgroundColor: theme.colors.accent,
     paddingHorizontal: 20,
     borderRadius: 12,
-    marginVertical: 6,
+    marginVertical: 8,
   },
   deleteText: {
     color: '#fff',

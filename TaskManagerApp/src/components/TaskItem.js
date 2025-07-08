@@ -1,11 +1,25 @@
 // Component that renders a single task item
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import CheckBox from '@react-native-community/checkbox';
+import { theme, getNeumorphicStyle } from '../Theme';
 
+// Renders a task using a soft neumorphic card design
 export default function TaskItem({ task, onToggle }) {
   return (
-    <TouchableOpacity onPress={() => onToggle(task.id)}>
-      <View style={styles.item}>
+    <TouchableOpacity
+      onPress={() => onToggle(task.id)}
+      activeOpacity={0.7}
+    >
+      <View style={[getNeumorphicStyle(theme.colors.card), styles.item]}>
+        {/* Checkbox to mark the task as complete */}
+        <CheckBox
+          value={task.completed}
+          onValueChange={() => onToggle(task.id)}
+          tintColors={{ true: theme.colors.accent, false: theme.colors.accent }}
+        />
+
+        {/* Task title */}
         <Text style={[styles.text, task.completed && styles.completed]}>{task.title}</Text>
       </View>
     </TouchableOpacity>
@@ -13,16 +27,27 @@ export default function TaskItem({ task, onToggle }) {
 }
 
 const styles = StyleSheet.create({
+  // Base container for the task row
   item: {
-    padding: 10,
-    borderBottomColor: '#ccc',
-    borderBottomWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    marginVertical: 6,
+    borderRadius: 12,
   },
+
+  // Title text style
   text: {
-    fontSize: 16,
+    flex: 1,
+    marginLeft: 8,
+    fontFamily: theme.fonts.family,
+    fontSize: theme.fonts.size.body,
+    color: theme.colors.textPrimary,
   },
+
+  // Style applied when task is completed
   completed: {
     textDecorationLine: 'line-through',
-    color: '#777',
+    opacity: 0.5,
   },
 });

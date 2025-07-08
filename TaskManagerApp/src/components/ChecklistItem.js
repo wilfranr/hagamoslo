@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   useColorScheme,
 } from 'react-native';
-import CheckBox from '@react-native-community/checkbox';
+import { Ionicons } from '@expo/vector-icons';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { theme, getNeumorphicStyle } from '../Theme';
@@ -69,12 +69,14 @@ export default function ChecklistItem({ item, onToggle, onEdit, onDelete }) {
         animatedStyle,
       ]}
     >
-      {/* Checkbox to mark the subtask as done */}
-      <CheckBox
-        value={item.completed}
-        onValueChange={handleToggle}
-        accessibilityLabel="checkbox"
-      />
+      {/* Checkmark icon toggles completion */}
+      <TouchableOpacity onPress={handleToggle} accessibilityLabel="Toggle subtask">
+        <Ionicons
+          name={item.completed ? 'checkmark-circle' : 'ellipse-outline'}
+          size={24}
+          color={theme.colors.accent}
+        />
+      </TouchableOpacity>
 
       {/* Title or text input depending on edit mode */}
       {editing ? (
@@ -93,15 +95,22 @@ export default function ChecklistItem({ item, onToggle, onEdit, onDelete }) {
       {/* Button to edit/save title */}
       <TouchableOpacity
         onPress={() => (editing ? saveEdit() : setEditing(true))}
-        accessibilityLabel="Edit subtask"
+        accessibilityLabel={editing ? 'Save subtask' : 'Edit subtask'}
       >
-        <Text style={styles.action}>{editing ? 'Save' : 'Edit'}</Text>
+        <Ionicons
+          name={editing ? 'checkmark' : 'pencil'}
+          size={20}
+          color={theme.colors.accent}
+        />
       </TouchableOpacity>
 
       {/* Optional delete button */}
       {onDelete && (
-        <TouchableOpacity onPress={() => onDelete(item.id)} accessibilityLabel="Delete subtask">
-          <Text style={styles.action}>Delete</Text>
+        <TouchableOpacity
+          onPress={() => onDelete(item.id)}
+          accessibilityLabel="Delete subtask"
+        >
+          <Ionicons name="trash-outline" size={20} color={theme.colors.accent} />
         </TouchableOpacity>
       )}
     </Animated.View>
@@ -132,9 +141,5 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.accent,
     borderRadius: 4,
     padding: 4,
-  },
-  action: {
-    marginLeft: 10,
-    color: theme.colors.accent,
   },
 });

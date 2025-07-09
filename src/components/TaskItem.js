@@ -1,12 +1,26 @@
 // Component that renders a single task item
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, useColorScheme } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Dimensions,
+  useColorScheme,
+} from 'react-native';
 import CheckBox from '@react-native-community/checkbox';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming, runOnJS } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  runOnJS,
+} from 'react-native-reanimated';
 import { Swipeable } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { theme, getNeumorphicStyle } from '../Theme';
+import { getTasks, saveTasks } from '../../utils/storage';
 
 // Renders a task using a soft neumorphic card design
 export default function TaskItem({ task, onToggle, onDelete }) {
@@ -14,6 +28,12 @@ export default function TaskItem({ task, onToggle, onDelete }) {
   const backgroundColor = theme.colors.background[
     scheme === 'dark' ? 'dark' : 'light'
   ];
+
+  // Store selected due date for this task
+  const [dueDate, setDueDate] = useState(
+    task.dueDate ? new Date(task.dueDate) : null
+  );
+  const [showPicker, setShowPicker] = useState(false);
 
   // Shared animated values for microinteractions and mount animation
   const opacity = useSharedValue(0);
@@ -57,6 +77,30 @@ export default function TaskItem({ task, onToggle, onDelete }) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
+  // Persist a new due date to storage and update local state
+  const saveDueDate = async (date) => {
+    setDueDate(date);
+    try {
+      const tasks = await getTasks();
+      const updated = tasks.map((t) =>
+        t.id === task.id ? { ...t, dueDate: date.toISOString() } : t
+      );
+      await saveTasks(updated);
+    } catch (e) {
+      console.error('Failed to save due date', e);
+    }
+  };
+
+  // Handle swipe open for both directions
+  const handleSwipe = (direction) => {
+    if (direction === 'left') {
+      setShowPicker(true);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } else if (direction === 'right') {
+      handleDelete();
+    }
+  };
+
   const renderRightActions = () => (
     <View style={styles.deleteContainer}>
       {/* Trash icon shown while swiping */}
@@ -64,29 +108,62 @@ export default function TaskItem({ task, onToggle, onDelete }) {
     </View>
   );
 
-  return (
-    <Swipeable renderRightActions={renderRightActions} onSwipeableOpen={handleDelete}>
-      <TouchableOpacity onPress={handleToggle} activeOpacity={0.7}>
-        <Animated.View
-          style={[
-            getNeumorphicStyle(theme.colors.card),
-            styles.item,
-            { backgroundColor },
-            animatedStyle,
-          ]}
-        >
-          {/* Checkbox to mark the task as complete */}
-          <CheckBox
-            value={task.completed}
-            onValueChange={handleToggle}
-            tintColors={{ true: theme.colors.accent, false: theme.colors.accent }}
-          />
+  const renderLeftActions = () => (
+    <View style={styles.dueDateContainer}>
+      {/* Calendar icon shown while swiping right */}
+      <Ionicons name="calendar-outline" size={24} color="#fff" />
+      <Text style={styles.dueDateText}>Set Due Date</Text>
+    </View>
+  );
 
-          {/* Task title */}
-          <Text style={[styles.text, task.completed && styles.completed]}>{task.title}</Text>
-        </Animated.View>
-      </TouchableOpacity>
-    </Swipeable>
+  return (
+    <>
+      <Swipeable
+        renderRightActions={renderRightActions}
+        renderLeftActions={renderLeftActions}
+        onSwipeableOpen={handleSwipe}
+      >
+        <TouchableOpacity onPress={handleToggle} activeOpacity={0.7}>
+          <Animated.View
+            style={[
+              getNeumorphicStyle(theme.colors.card),
+              styles.item,
+              { backgroundColor },
+              animatedStyle,
+            ]}
+          >
+            {/* Checkbox to mark the task as complete */}
+            <CheckBox
+              value={task.completed}
+              onValueChange={handleToggle}
+              tintColors={{ true: theme.colors.accent, false: theme.colors.accent }}
+            />
+
+            {/* Container for task text and due date */}
+            <View style={styles.textContainer}>
+              <Text style={[styles.text, task.completed && styles.completed]}>
+                {task.title}
+              </Text>
+              {dueDate && (
+                <Text style={styles.dueDate}>{dueDate.toDateString()}</Text>
+              )}
+            </View>
+          </Animated.View>
+        </TouchableOpacity>
+      </Swipeable>
+      {/* Date picker shown after swiping right */}
+      {showPicker && (
+        <DateTimePicker
+          value={dueDate || new Date()}
+          mode="date"
+          display="default"
+          onChange={(_, date) => {
+            setShowPicker(false);
+            if (date) saveDueDate(date);
+          }}
+        />
+      )}
+    </>
   );
 }
 
@@ -124,5 +201,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 12,
     marginVertical: 8,
+  },
+
+  // Left swipe due date background
+  dueDateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.accent,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginVertical: 8,
+  },
+  dueDateText: {
+    color: '#fff',
+    marginLeft: 8,
+    fontWeight: 'bold',
+  },
+
+  // Wrapper for title and date
+  textContainer: {
+    flex: 1,
+    marginLeft: 8,
+  },
+
+  // Due date label below the title
+  dueDate: {
+    fontSize: theme.fonts.size.caption,
+    color: theme.colors.textSecondary,
   },
 });

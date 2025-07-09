@@ -33,6 +33,11 @@ export default function TaskItem({ task, onToggle, onDelete }) {
   const [dueDate, setDueDate] = useState(
     task.dueDate ? new Date(task.dueDate) : null
   );
+
+  // Determine if the task has passed its due date
+  // Compare the due date timestamp with the current time from Date.now()
+  // If the due date is before now, mark the task as expired
+  const isExpired = dueDate ? dueDate.getTime() < Date.now() : false;
   const [showPicker, setShowPicker] = useState(false);
 
   // Shared animated values for microinteractions and mount animation
@@ -128,6 +133,7 @@ export default function TaskItem({ task, onToggle, onDelete }) {
             style={[
               getNeumorphicStyle(theme.colors.card),
               styles.item,
+              isExpired && styles.expiredItem,
               { backgroundColor },
               animatedStyle,
             ]}
@@ -145,7 +151,19 @@ export default function TaskItem({ task, onToggle, onDelete }) {
                 {task.title}
               </Text>
               {dueDate && (
-                <Text style={styles.dueDate}>{dueDate.toDateString()}</Text>
+                <View style={styles.dueDateRow}>
+                  <Text
+                    style={[
+                      styles.dueDate,
+                      isExpired && styles.expiredDueDate,
+                    ]}
+                  >
+                    {dueDate.toDateString()}
+                  </Text>
+                  {isExpired && (
+                    <Text style={styles.expiredBadge}>Expired</Text>
+                  )}
+                </View>
               )}
             </View>
           </Animated.View>
@@ -176,6 +194,11 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     marginHorizontal: 4,
     borderRadius: 12,
+  },
+
+  // Reduced opacity when task is expired
+  expiredItem: {
+    opacity: 0.6,
   },
 
   // Title text style
@@ -224,9 +247,28 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
 
+  // Row to hold the due date and expired label
+  dueDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
   // Due date label below the title
   dueDate: {
     fontSize: theme.fonts.size.caption,
     color: theme.colors.textSecondary,
+  },
+
+  // Red color for overdue date
+  expiredDueDate: {
+    color: '#FF3B30',
+  },
+
+  // "Expired" badge shown when overdue
+  expiredBadge: {
+    marginLeft: 6,
+    fontSize: theme.fonts.size.caption,
+    fontWeight: 'bold',
+    color: '#FF3B30',
   },
 });

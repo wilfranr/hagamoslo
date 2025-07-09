@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, FlatList } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
 import TaskInput from './src/components/TaskInput';
 import TaskItem from './src/components/TaskItem';
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
 
 export default function App() {
   const [tasks, setTasks] = useState([]);
@@ -21,6 +25,16 @@ export default function App() {
       )
     );
   };
+
+  // Hide splash screen once everything is ready
+  useEffect(() => {
+    const hide = async () => {
+      // Wait a short time to simulate asset loading
+      await new Promise((res) => setTimeout(res, 300));
+      await SplashScreen.hideAsync();
+    };
+    hide();
+  }, []);
 
   return (
     <View style={styles.container}>

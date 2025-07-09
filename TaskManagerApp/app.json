@@ -11,6 +11,11 @@
     },
     "android": {
       "edgeToEdgeEnabled": true
+    },
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F0F2F5"
     }
   }
 }
